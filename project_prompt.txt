@@ -1,0 +1,177 @@
+You are an expert full-stack engineer. Build an MVP web app called “UGC & Review Mining Agent” starting from this local directory named `UGC_Review_Mining_Agent`.
+
+GOALS (MVP)
+1) The app allows a user to upload a CSV file of product reviews (Amazon export format).
+2) Backend parses the CSV, mines insights (what customers love, objections, trends), and generates a product sentiment overview brief.
+3) Frontend shows:
+   - Summary: overall sentiment + rating distribution
+   - Top 3 “Loved” themes with counts and example quotes
+   - Top 3 “Needs Improvement” themes with counts and example quotes
+   - “Recent trends” section based on review dates (e.g., last 30-60 days vs overall)
+   - A final “Executive Brief” in readable paragraph form plus a structured JSON view
+4) The app is structured to support “continuous mining” for the assignment requirement:
+   - Implement a simple concept of “Projects” (each upload creates a project/job with stored results)
+   - Implement a lightweight “Re-run analysis” button that reprocesses stored raw reviews
+   - Add a placeholder “Connect data sources” area for future social integrations (X/Instagram/Facebook/etc.)
+   - Add a placeholder endpoint and UI card for “scheduled refresh” (no real OAuth scraping needed for MVP)
+5) The project has BOTH a frontend web app and backend API, runs locally, and deploys to Render.
+6) Create and initialize a new Git repository locally and provide exact terminal commands to push to a new remote GitHub repository (remote does not exist yet).
+
+TECH STACK (pick the easiest stable stack)
+- Frontend: React + Vite + TypeScript + Tailwind (simple to deploy)
+- Backend: Python FastAPI (clean file upload handling)
+- Storage: SQLite for MVP (file-based), structured so it can be swapped to Postgres later
+- LLM: OpenAI API variable OPENAI_API_KEY (easiest method for storing the API Key localy and while sotring the information securely in Github)
+- Deployment: Render with two services (frontend static site + backend web service). Include render.yaml for Infra-as-Code.
+
+CSV FORMAT EXPECTATIONS (must support this)
+The CSV will contain columns similar to:
+- “Review Title”
+- “Review Content”
+- “Review Rating” (strings like “5.0 out of 5 stars”)
+- “Review Date” (strings like “Reviewed in the United States on January 12, 2026”)
+- “Review Badge” (e.g., Verified Purchase)
+- “Product URL”
+It may contain extra columns; do not break if unknown columns exist.
+If the exact column names differ slightly, attempt to map them robustly.
+Note that the Sample_Review_Files folder in this directory provides a sample CSV file of review exports for testing.  
+
+OUTPUT REQUIREMENTS (what the analysis must produce)
+Backend must compute:
+A) Rating distribution (counts of 1–5)
+B) Sentiment estimate:
+   - Use rating mapping: 4-5 positive, 3 neutral, 1-2 negative (do not rely only on the LLM)
+C) Theme mining:
+   - Extract themes for “Loved” and “Needs Improvement”
+   - Provide counts for each theme (how many reviews mention it)
+   - Provide up to 2 representative quotes per theme (title + snippet)
+D) Trends:
+   - Identify if negative themes are increasing in most recent window (e.g., last 30–60 days) vs overall
+   - Create a short “Recent trends” paragraph plus a small table in the UI
+E) Executive Brief:
+   - Generate a readable brief like:
+     “Overall sentiment is positive… Top 3 liked… Top 3 improvements… Recent trends… Recommendations…”
+   - Recommendations should be actionable product improvements and content ideas.
+
+LLM USAGE STRATEGY (optimize cost + reliability)
+Do NOT dump the entire dataset into one LLM call if large.
+Implement a two-stage pipeline:
+1) Deterministic preprocessing in code:
+   - Parse rating to 1–5
+   - Parse date into ISO format
+   - Clean and truncate review text safely
+2) LLM-assisted extraction in chunks:
+   - Chunk reviews into batches (e.g., 20 reviews per batch)
+   - For each batch, call OpenAI to extract “mentions” as structured JSON:
+     - For each review: list up to 3 themes (short labels) + polarity (love/improve) + optional “reason”
+3) Aggregate in code:
+   - Normalize theme labels (simple heuristic: lowercase, strip punctuation; optional small synonym merge)
+   - Count occurrences per theme for love/improve
+   - Pick representative quotes from source reviews
+4) Final LLM call:
+   - Provide aggregated stats + top themes + trends window stats
+   - Ask LLM to write the final executive brief + “content brief ideas” + “product improvement ideas”
+All LLM calls must request STRICT JSON outputs using a schema-like instruction. Validate JSON; if invalid, retry once.
+
+API DESIGN
+Backend endpoints:
+- GET /api/health -> {status:"ok"}
+- POST /api/analyze (multipart file upload CSV) -> returns {job_id}
+- GET /api/jobs/{job_id} -> returns analysis results JSON for that job
+- POST /api/jobs/{job_id}/rerun -> re-run analysis from stored raw reviews
+- GET /api/connectors -> placeholder list of future data sources
+- POST /api/connectors/oauth/mock -> placeholder endpoint, not functional
+Store:
+- raw reviews in SQLite (table reviews)
+- jobs in SQLite (table jobs)
+- analysis results in SQLite (table job_results as JSON)
+
+FRONTEND PAGES / UI
+- Home page:
+  - App title + description (assignment-aligned)
+  - File upload (CSV)
+  - “Analyze” button
+  - A “Future Data Sources” card with disabled buttons:
+    - “Connect X (Twitter)”
+    - “Connect Instagram”
+    - “Connect Facebook”
+    - “Connect YouTube”
+    - “Connect Shopify Reviews”
+    - Each shows “Coming soon”
+- Results page (for a job_id):
+  - Overall sentiment summary + rating distribution
+  - Top Loved themes (with counts + quotes)
+  - Top Improvement themes (with counts + quotes)
+  - Recent Trends section (windowed comparison)
+  - Executive Brief section with “Copy to clipboard” button
+  - “Re-run analysis” button
+  - “Download JSON” button
+Make it clean and presentable, but don’t overbuild.
+
+LOCAL DEV EXPERIENCE
+- One command to run backend, one command to run frontend
+- Include a root README with:
+  - setup steps
+  - env var setup
+  - run instructions
+  - render deployment steps
+  - github push steps
+- Include .env.example files for backend and frontend.
+
+RENDER DEPLOYMENT
+- Include render.yaml defining:
+  - backend web service (Python)
+  - frontend static site (Vite build)
+- Backend start command: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+- Frontend build: npm install && npm run build, publish dist
+- Backend should allow CORS from frontend origin (use env var FRONTEND_ORIGIN, default "*” for MVP)
+
+REPO STRUCTURE
+Create a monorepo:
+UGC_Review_Mining_Agent/
+  backend/
+    app/
+      main.py
+      routes.py
+      llm.py
+      parsing.py
+      models.py
+      db.py
+    requirements.txt
+    .env.example
+  frontend/
+    src/...
+    index.html
+    package.json
+    vite.config.ts
+    tailwind config
+    .env.example
+  render.yaml
+  README.md
+  .gitignore
+
+QUALITY / SAFETY
+- Add robust error handling for malformed CSV
+- Do not log raw OPENAI_API_KEY
+- Include simple server-side limits: max file size (e.g., 10MB) and max rows (e.g., 10k) for MVP
+- Provide clear UI errors if upload fails.
+
+IMPLEMENTATION STEPS
+1) Scaffold backend FastAPI with SQLite + tables + endpoints
+2) Implement CSV parsing + normalization for rating/date/text
+3) Implement LLM chunk extraction + aggregation + final brief generation
+4) Scaffold frontend upload flow + results view
+5) Wire frontend to backend (base URL via env var VITE_API_URL)
+6) Add placeholder “Connectors” UI and endpoints
+7) Add render.yaml + README
+8) Initialize git repo and provide exact commands to push to a new GitHub remote.
+
+IMPORTANT: After generating the full codebase, create a new Markdown file named "commands and deployment steps.md"
+and make sure to include it in the .gitignore.  This file should include the following:
+- Instructions for setting up the OpenAI API (for both local runs and Render deployment)
+- the exact terminal commands to run locally
+- the exact steps + commands to create the GitHub repo and push (git init, add, commit, branch, remote add, push)
+- the Render deployment notes (what to set for env vars)
+- Any other relavent commands/setup information required to get the project up and Running as a Github Repo with n MVP on Render.
+
+Now start building the project in this directory.
