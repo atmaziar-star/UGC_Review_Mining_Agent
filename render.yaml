@@ -15,7 +15,7 @@ services:
       mountPath: /opt/render/project/src/backend
       sizeGB: 1
 
-  - type: static
+  - type: staticSite
     name: ugc-review-mining-frontend
     buildCommand: cd frontend && npm install && npm run build
     staticPublishPath: ./frontend/dist
