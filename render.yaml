@@ -15,11 +15,11 @@ services:
       mountPath: /opt/render/project/src/backend
       sizeGB: 1
 
-  - type: staticSite
+  - type: web
     name: ugc-review-mining-frontend
+    env: node
     buildCommand: cd frontend && npm install && npm run build
-    staticPublishPath: ./frontend/dist
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
+    startCommand: cd frontend && npx serve -s dist -l $PORT
+    envVars:
+      - key: VITE_API_URL
+        value: ${BACKEND_URL}
