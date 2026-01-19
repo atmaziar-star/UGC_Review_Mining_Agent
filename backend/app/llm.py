@@ -10,6 +10,7 @@ from app.models import ReviewInput, ThemeMention, ThemeSummary, TrendWindow
 
 # Groq uses very fast LPU (Language Processing Unit) for inference
 GROQ_MODEL = "openai/gpt-oss-120b"  # Fast and high quality
+GROQ_MODEL_Cheap = "llama-3.3-70b-versatile"
 
 # Initialize Groq client
 def get_groq_client() -> Groq:
@@ -59,7 +60,7 @@ def extract_themes_from_chunk(reviews: List[ReviewInput], chunk_id: int) -> List
 
 For each review, identify up to 3 themes. For each theme provide:
 - Label (1-4 words, e.g., "ice retention", "durability")
-- Polarity: "love" (positive) or "improve" (negative/complaints)
+- Polarity: "love" (positive sentiment) or "improve" (negative/complaint sentiment)
 - Snippet: exact quote where theme is mentioned (50-150 chars)
 
 Reviews:
@@ -83,9 +84,9 @@ IMPORTANT: Return ONLY valid JSON. No markdown, no explanations."""
     
     try:
         response = client.chat.completions.create(
-            model=GROQ_MODEL,  # Use cheaper model for theme extraction - faster and more cost-effective
+            model=GROQ_MODEL_Cheap,  # Use cheaper model for theme extraction - faster and more cost-effective
             messages=[
-                {"role": "system", "content": "You are a helpful assistant that extracts themes from product reviews. Only Return valid JSON with no placeholder text."},
+                {"role": "system", "content": "You are a sentiment identification and theme extraction specialist that extracts themes from product reviews. Only Return valid JSON with no markdown or placeholder text."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.1,
