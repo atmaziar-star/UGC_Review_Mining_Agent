@@ -143,16 +143,21 @@ Extra columns are ignored. The parser attempts to map variations in column names
 
 ## Deployment to Render
 
-See `commands and deployment steps.md` (excluded from git) for detailed deployment instructions.
+See `commands and deployment steps.md` (excluded from git) for detailed step-by-step deployment instructions.
 
-Quick overview:
-1. Create two services on Render:
-   - Backend: Python web service
-   - Frontend: Static site
-2. Set environment variables:
-   - `GROQ_API_KEY`: Your Groq API key (get one at https://console.groq.com)
-   - `FRONTEND_ORIGIN`: Frontend URL (for CORS)
-3. Deploy using `render.yaml` or manual setup
+**Quick Overview:**
+1. Deploy **Backend Service** first (Python web service)
+   - Set `GROQ_API_KEY` and `FRONTEND_ORIGIN` environment variables
+   - Root Directory: `backend`
+   - Start Command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+2. Deploy **Frontend Service** (Node web service serving static files)
+   - Set `VITE_API_URL` to your backend URL
+   - Root Directory: `frontend`
+   - Build Command: `npm install && npm run build`
+   - Start Command: `cd frontend && npx serve -s dist -l $PORT`
+3. Update backend `FRONTEND_ORIGIN` with your frontend URL
+
+**Important**: See `commands and deployment steps.md` for complete manual setup instructions.
 
 ## GitHub Repository Setup
 
